@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f5c518">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>Taxímetro · Aranda de Duero · Lic. 12</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+:root{
+  --bg:#08080e;--s1:#111119;--s2:#181824;--s3:#1f1f2e;
+  --border:#28283c;--border2:#353550;
+  --yellow:#f5c518;--yellow2:#ffd84d;--ydim:rgba(245,197,24,.12);
+  --green:#2ecc71;--gdim:rgba(46,204,113,.12);
+  --red:#e74c3c;--rdim:rgba(231,76,60,.12);
+  --blue:#6c8bff;--bdim:rgba(108,139,255,.12);
+  --orange:#ff7043;
+  --text:#eeeef5;--text2:#aaaab8;--text3:#66667a;
+  --r:14px;--rs:9px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;overflow-x:hidden;padding-bottom:30px}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.5}
+
+/* ── HEADER ── */
+.hdr{background:var(--s1);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:300}
+.hdr-l{display:flex;align-items:center;gap:9px}
+.taxi-pill{background:var(--yellow);color:#000;font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2.5px;padding:3px 10px 2px;border-radius:5px}
+.hdr-name{font-size:11.5px;font-weight:600;line-height:1.4}
+.hdr-sub{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.hdr-r{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+.clock{font-family:'DM Mono',monospace;font-size:13px;color:var(--text2)}
+.tc{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:10.5px;font-weight:700}
+.tc-day{background:var(--ydim);color:var(--yellow);border:1px solid rgba(245,197,24,.25)}
+.tc-night{background:var(--bdim);color:var(--blue);border:1px solid rgba(108,139,255,.25)}
+.tc-dot{width:5px;height:5px;border-radius:50%}
+.tcd-y{background:var(--yellow)}.tcd-b{background:var(--blue)}
+
+/* ── SUPPLEMENTS ── */
+.supl-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);padding:11px 14px;margin-bottom:10px}
+.supl-lbl{font-size:11px;color:var(--text2);margin-bottom:8px;font-weight:600}
+.supl-ctrl{display:flex;align-items:center;gap:12px}
+.supl-btn{background:var(--s3);border:1px solid var(--border2);color:var(--text);width:34px;height:34px;border-radius:8px;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1}
+.supl-btn:active{filter:brightness(1.3)}
+.supl-val{font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--yellow);min-width:28px;text-align:center}
+.supl-inputs{display:grid;grid-template-columns:1fr 80px;gap:8px}
+.supl-input{background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;width:100%}
+.supl-input:focus{border-color:var(--yellow)}
+.btn-edit{background:var(--s2);color:var(--text2);border:1px solid var(--border)}
+
+/* ── EDIT PANEL ── */
+.edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:550;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
+.edit-overlay.hide{display:none}
+.edit-panel{background:var(--s2);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:0 0 30px;max-height:85vh;overflow-y:auto;animation:slideUp .25s ease}
+.edit-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--s2);z-index:1}
+.edit-hdr span{font-size:14px;font-weight:700}
+.edit-close{background:var(--s3);border:none;color:var(--text2);font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer}
+.edit-body{padding:16px 18px}
+.edit-field{margin-bottom:14px}
+.edit-field label{display:block;font-size:11px;color:var(--text3);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px}
+.edit-field input{width:100%;background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:10px 12px;color:var(--text);font-size:14px;font-family:'DM Mono',monospace;outline:none}
+.edit-field input:focus{border-color:var(--yellow)}
+.edit-save{margin:4px 18px 0;width:calc(100% - 36px);padding:13px;background:var(--yellow);color:#000;font-weight:700;font-size:14px;border:none;border-radius:var(--rs);cursor:pointer;font-family:'DM Sans',sans-serif;display:block}
+
+/* ── HISTORY BY DAY ── */
+.hist-day-hdr{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--text2);padding:10px 0 6px;margin-top:8px;border-top:1px solid var(--border)}
+.hist-filter{display:flex;gap:8px;padding:10px 14px;border-bottom:1px solid var(--border)}
+.hist-filter input[type=month]{background:var(--s3);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;color:var(--text);font-size:13px;outline:none;flex:1}
+.hist-filter input[type=month]:focus{border-color:var(--yellow)}
+.hist-filter-btn{padding:7px 14px;background:var(--yellow);color:#000;font-weight:700;font-size:12px;border:none;border-radius:6px;cursor:pointer}
+
+/* ── HISTORY BUTTON ── */
+.btn-hist{background:none;border:none;color:var(--text2);font-size:18px;cursor:pointer;padding:3px 5px;border-radius:6px;line-height:1;transition:color .15s}
+.btn-hist:active{color:var(--yellow)}
+
+/* ── HISTORY OVERLAY ── */
+.hist-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;flex-direction:column;backdrop-filter:blur(10px)}
+.hist-overlay.hide{display:none}
+.hist-hdr{background:var(--s1);border-bottom:1px solid var(--border);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hist-hdr-title{font-size:14px;font-weight:700}
+.hist-close{background:var(--s3);border:none;color:var(--text2);font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.hist-list{overflow-y:auto;flex:1;padding:12px 14px;display:flex;flex-direction:column;gap:9px}
+.hist-empty{color:var(--text3);font-size:13px;text-align:center;margin-top:40px}
+.hist-card{background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);padding:12px 14px;cursor:pointer;transition:border-color .15s}
+.hist-card:active{border-color:var(--yellow)}
+.hist-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+.hist-card-id{font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)}
+.hist-card-total{font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--yellow);line-height:1}
+.hist-card-row{display:flex;gap:14px;font-size:11px;color:var(--text2)}
+.hist-card-row span{display:flex;align-items:center;gap:4px}
+.hist-card-addr{font-size:10px;color:var(--text3);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+
+.gps-settings-btn{background:none;border:none;font-size:16px;cursor:pointer;padding:2px 4px;border-radius:5px;line-height:1;transition:transform .15s,background .15s;flex-shrink:0}
+.gps-settings-btn:active{transform:scale(.88)}
+.gps-settings-btn.hide{display:none}
+
+/* ── SETTINGS PANEL ── */
+.stp-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:600;display:flex;align-items:flex-end;justify-content:center;backdrop-filter:blur(8px)}
+.stp-overlay.hide{display:none}
+.stp-panel{background:var(--s2);border:1px solid var(--border2);border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:0 0 30px;max-height:88vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.stp-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--s2);z-index:1}
+.stp-head span{font-size:14px;font-weight:700;color:var(--text)}
+.stp-close{background:var(--s3);border:none;color:var(--text2);font-size:16px;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.stp-body{padding:16px 18px 8px}
+.stp-retry{margin:4px 18px 0;width:calc(100% - 36px);padding:13px;background:var(--yellow);color:#000;font-weight:700;font-size:14px;border:none;border-radius:var(--rs);cursor:pointer;font-family:'DM Sans',sans-serif;display:block}
+.stp-retry:active{filter:brightness(.9)}
+
+/* path steps */
+.stp-steps{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.stp-step{display:flex;align-items:center;gap:10px;background:var(--s3);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.stp-step-num{width:22px;height:22px;border-radius:50%;background:var(--yellow);color:#000;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.stp-step-txt{font-size:12.5px;color:var(--text);line-height:1.4}
+.stp-step-txt strong{color:var(--yellow)}
+.stp-arrow{text-align:center;font-size:18px;color:var(--text3);margin:-2px 0}
+/* visual mock of a settings row */
+.stp-mock{background:var(--s3);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.stp-mock-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2)}
+.stp-mock-row:last-child{border-bottom:none}
+.stp-mock-row.active{background:rgba(245,197,24,.08);color:var(--text)}
+.stp-mock-row .mr-icon{font-size:18px;width:28px;text-align:center;flex-shrink:0}
+.stp-mock-row .mr-lbl{flex:1}
+.stp-mock-row .mr-arrow{color:var(--text3);font-size:12px}
+.stp-mock-row .mr-badge{background:var(--yellow);color:#000;font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.stp-mock-row .mr-toggle{width:38px;height:22px;border-radius:11px;background:var(--green);display:flex;align-items:center;justify-content:flex-end;padding:2px}
+.stp-mock-row .mr-toggle-off{background:var(--border2);justify-content:flex-start}
+.mr-toggle-dot{width:18px;height:18px;border-radius:50%;background:#fff}
+.stp-section-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);margin-bottom:6px}
+
+/* ── GPS STRIP ── */
+.gps-strip{margin:12px 14px 0;padding:8px 12px;background:var(--s2);border:1px solid var(--border);border-radius:var(--rs);display:flex;align-items:center;gap:8px;font-size:11px;font-family:'DM Mono',monospace;color:var(--text3)}
+.gps-icon{font-size:13px}
+.c-ok{color:var(--green)}.c-warn{color:var(--orange)}.c-off{color:var(--text3)}
+
+/* ── MAIN SCROLL ── */
+.main{padding:12px 14px;max-width:480px;margin:0 auto}
+
+/* ── METER CARD ── */
+.mc{background:var(--s1);border:1px solid var(--border);border-radius:var(--r);padding:20px 18px 16px;margin-bottom:12px;position:relative;overflow:hidden}
+.mc .sl{position:absolute;top:0;left:-100%;width:100%;height:2px;background:linear-gradient(90deg,transparent,var(--yellow),transparent)}
+.mc.active .sl{animation:scan 2.1s linear infinite}
+.mc.paused-c .sl{background:linear-gradient(90deg,transparent,var(--orange),transparent);animation:scan 3s linear infinite}
+@keyframes scan{from{left:-100%}to{left:100%}}
+.mc-lbl{font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.mc-num{font-family:'Bebas Neue',sans-serif;font-size:72px;line-height:.92;letter-spacing:1px;color:var(--yellow)}
+.mc-num.pulse{animation:glow 1.3s ease-in-out infinite alternate}
+@keyframes glow{from{color:var(--yellow)}to{color:var(--yellow2)}}
+.mc-num.green{color:var(--green);animation:none}
+.mc-num.dimmed{color:var(--text3);font-size:46px;animation:none}
+.mc-sub{font-size:11px;color:var(--text3);margin-top:7px}
+.mc-note{font-size:10px;color:var(--text3);margin-top:3px;font-family:'DM Mono',monospace}
+
+/* ── STATS ── */
+.sr{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:12px}
+.sr2{grid-template-columns:1fr 1fr}
+.stat{background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);padding:11px 13px}
+.sv{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sv-y{color:var(--yellow)}.sv-g{color:var(--green)}.sv-b{color:var(--blue)}.sv-o{color:var(--orange)}
+.sl2{font-size:9px;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+
+/* ── BREAKDOWN ── */
+.bk{background:var(--s1);border:1px solid var(--border);border-radius:var(--rs);margin-bottom:12px;overflow:hidden}
+.bkr{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;font-size:12px;border-bottom:1px solid var(--border)}
+.bkr:last-child{border-bottom:none}
+.bkl{color:var(--text2)}.bkv{font-family:'DM Mono',monospace;font-weight:500}
+.bkr.bkt{background:var(--s2)}
+.bkr.bkt .bkl{font-weight:700;font-size:13px;color:var(--text)}
+.bkr.bkt .bkv{color:var(--yellow);font-size:14px}
+
+/* ── STATUS BAR ── */
+.sb{display:flex;align-items:center;gap:8px;padding:8px 13px;border-radius:var(--rs);margin-bottom:12px;font-size:11.5px;color:var(--text2);border:1px solid var(--border)}
+.sb-idle{background:var(--s2)}
+.sb-wait{background:rgba(245,197,24,.07);border-color:rgba(245,197,24,.2)}
+.sb-run{background:rgba(46,204,113,.07);border-color:rgba(46,204,113,.2)}
+.sb-pau{background:rgba(255,112,67,.07);border-color:rgba(255,112,67,.2)}
+.sb-done{background:rgba(46,204,113,.07);border-color:rgba(46,204,113,.2)}
+.sbd{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sbd-i{background:var(--text3)}
+.sbd-w{background:var(--yellow);animation:bk 1.1s infinite}
+.sbd-r{background:var(--green);animation:bk .75s infinite}
+.sbd-p{background:var(--orange);animation:bk 1.5s infinite}
+.sbd-d{background:var(--green)}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── INDICATORS ── */
+.wi{display:none;background:rgba(245,197,24,.08);border:1px solid rgba(245,197,24,.22);border-radius:var(--rs);padding:8px 13px;margin-bottom:12px;font-size:11.5px;font-family:'DM Mono',monospace;color:var(--yellow)}
+.wi.on{display:block}
+.pi{display:none;background:rgba(255,112,67,.08);border:1px solid rgba(255,112,67,.22);border-radius:var(--rs);padding:8px 13px;margin-bottom:12px;font-size:11.5px;font-family:'DM Mono',monospace;color:var(--orange)}
+.pi.on{display:block}
+
+/* ── BUTTONS ── */
+.ba{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.btn{border:none;border-radius:var(--rs);padding:14px 10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:filter .12s,transform .1s;touch-action:manipulation}
+.btn:active:not(:disabled){transform:scale(.94)}
+.btn:disabled{opacity:.28;cursor:not-allowed;transform:none!important}
+.btn-f{grid-column:1/-1}
+.btn-start{background:var(--yellow);color:#000;padding:18px;font-size:15px;border-radius:var(--r)}
+.btn-go{background:var(--green);color:#000}
+.btn-pause{background:var(--orange);color:#fff}
+.btn-stop{background:var(--red);color:#fff;padding:16px;border-radius:var(--r)}
+.btn-rcpt{background:var(--s2);color:var(--text);border:1px solid var(--border)}
+.btn-new{background:var(--ydim);color:var(--yellow);border:1px solid rgba(245,197,24,.3)}
+.btn-start:hover:not(:disabled){filter:brightness(1.08)}
+.btn-go:hover:not(:disabled){filter:brightness(1.08)}
+.btn-stop:hover:not(:disabled){filter:brightness(1.08)}
+
+
+/* ══════════════════════════════════════
+   RECEIPT OVERLAY
+══════════════════════════════════════ */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;padding:18px 12px 40px;backdrop-filter:blur(10px)}
+.overlay.hide{display:none}
+.rcpt{background:#fff;color:#1a1a1a;border-radius:10px;width:100%;max-width:340px;margin:auto;overflow:hidden;font-family:'DM Mono',monospace;font-size:11.5px}
+.rcpt-band{background:var(--yellow);padding:13px 16px;text-align:center}
+.rcpt-band .rt{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:4px;color:#000;line-height:1}
+.rcpt-band .rl{font-family:'DM Sans',sans-serif;font-size:9.5px;font-weight:700;color:rgba(0,0,0,.5);letter-spacing:1.5px;text-transform:uppercase;margin-top:2px}
+.rcpt-body{padding:15px 17px}
+.rcpt-co{font-family:'DM Sans',sans-serif;text-align:center;margin-bottom:11px;border-bottom:1px dashed #ddd;padding-bottom:11px}
+.rcpt-co .cn{font-size:12.5px;font-weight:700;color:#111;line-height:1.4}
+.rcpt-co .ci{font-size:10px;color:#666;line-height:1.7}
+.rnum{display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:9px;padding-bottom:9px;border-bottom:1px dashed #eee}
+.rs{margin-bottom:9px;padding-bottom:9px;border-bottom:1px dashed #eee}
+.rs:last-of-type{border-bottom:none}
+.rr{display:flex;justify-content:space-between;padding:2px 0;font-size:11px}
+.rr .rl2{color:#666}.rr .rv{font-weight:500;color:#222}
+.rr.rtot{font-family:'DM Sans',sans-serif;font-weight:800;font-size:15.5px;padding-top:7px;margin-top:3px;border-top:2px solid #111}
+.rr.rtot .rl2{color:#111}.rr.rtot .rv{color:#111}
+.rr.riva{font-size:9px;color:#bbb}
+.rr.rsub{font-size:10.5px;color:#999}
+.rcpt-qr{display:flex;flex-direction:column;align-items:center;padding:13px 0 7px;border-top:1px dashed #ddd;margin-top:7px}
+.rcpt-qr-note{font-size:9px;color:#bbb;margin-top:6px;text-align:center;line-height:1.5}
+#qrcode{display:flex;align-items:center;justify-content:center;min-height:140px}
+#qrcode svg{display:block;border-radius:4px}
+.rcpt-foot{background:#f8f8f8;padding:9px 16px;text-align:center;font-size:9px;color:#aaa;line-height:1.7;border-top:1px solid #eee}
+.ra{padding:12px 16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;border-top:1px solid #eee}
+.rab{padding:10px;border-radius:7px;font-size:12px;font-weight:700;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'DM Sans',sans-serif;transition:filter .12s}
+.rab:active{transform:scale(.95)}
+.ra-pdf{background:#e53935;color:#fff}
+.ra-wa{background:#25d366;color:#fff}
+.ra-mail{background:#1565c0;color:#fff;grid-column:1/-1}
+.ra-share{background:#6a1b9a;color:#fff;grid-column:1/-1}
+.ra-close{background:#eeeeee;color:#444;grid-column:1/-1}
+
+/* ── CONFIRM ── */
+.conf{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:600;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.conf.hide{display:none}
+.conf-box{background:var(--s2);border:1px solid var(--border2);border-radius:var(--r);padding:22px 20px;max-width:320px;width:100%;text-align:center}
+.conf-box h3{font-size:15px;margin-bottom:7px}
+.conf-box p{font-size:12.5px;color:var(--text2);line-height:1.5;margin-bottom:18px}
+.conf-btns{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.cb-y{background:var(--red);color:#fff;border:none;padding:11px;border-radius:var(--rs);font-weight:700;font-size:13px;cursor:pointer}
+.cb-n{background:var(--s3);color:var(--text);border:1px solid var(--border2);padding:11px;border-radius:var(--rs);font-weight:600;font-size:13px;cursor:pointer}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--s2);border:1px solid var(--border2);color:var(--text);padding:9px 18px;border-radius:20px;font-size:12.5px;z-index:700;transition:transform .28s ease;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 40px);text-align:center}
+.toast.on{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════ HEADER ══════════════ -->
+<div class="hdr">
+  <div class="hdr-l">
+    <div class="taxi-pill">TAXI</div>
+    <div>
+      <div class="hdr-name">Aranda de Duero</div>
+      <div class="hdr-sub">Licencia Nº 12 · Burgos</div>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button class="btn-hist" onclick="openHistory()" title="Historial de recibos">🧾</button>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <div class="clock" id="clock">--:--:--</div>
+        <div class="tc tc-day" id="tc">
+          <span class="tc-dot tcd-y" id="tcdot"></span>
+          <span id="tclbl">T1 · Diurna</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GPS strip -->
+<div class="gps-strip">
+  <span class="gps-icon" id="gpsIcon">📡</span>
+  <span id="gpsTxt" class="c-off" style="flex:1">Solicitando permisos de ubicación…</span>
+  <button class="gps-settings-btn hide" id="gpsSettingsBtn" onclick="openSettingsPanel()" title="Cómo activar la ubicación">⚙️</button>
+</div>
+
+<!-- Settings panel overlay -->
+<div class="stp-overlay hide" id="stpOverlay" onclick="if(event.target===this)closeSettingsPanel()">
+  <div class="stp-panel" id="stpPanel">
+    <div class="stp-head">
+      <span id="stpTitle">Activar ubicación</span>
+      <button class="stp-close" onclick="closeSettingsPanel()">✕</button>
+    </div>
+    <div class="stp-body" id="stpBody"></div>
+    <button class="stp-retry" onclick="closeSettingsPanel();retryGPS()">🔄 &nbsp;Ya lo activé · Reintentar</button>
+  </div>
+</div>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<div class="main">
+
+  <!-- ── IDLE ── -->
+  <div id="stIdle">
+    <div class="mc">
+      <div class="sl"></div>
+      <div class="mc-lbl">Taxímetro</div>
+      <div class="mc-num dimmed">0,00 €</div>
+      <div class="mc-sub">Pulse <strong style="color:var(--text)">INICIAR SERVICIO</strong> al recoger al cliente</div>
+    </div>
+    <div class="sb sb-idle">
+      <div class="sbd sbd-i"></div>
+      <span>En espera · GPS <span id="idleGpsStatus">iniciando…</span></span>
+    </div>
+    <div class="ba">
+      <button class="btn btn-start btn-f" id="btnStart" onclick="startService()">🚕 &nbsp;INICIAR SERVICIO</button>
+    </div>
+  </div>
+
+  <!-- ── WAITING (en punto de recogida) ── -->
+  <div id="stWait" style="display:none">
+    <div class="mc active" id="mcWait">
+      <div class="sl"></div>
+      <div class="mc-lbl">Importe actual</div>
+      <div class="mc-num pulse" id="wAmt">4,05 €</div>
+      <div class="mc-sub" id="wSub">Bajada de bandera aplicada</div>
+    </div>
+    <div class="wi" id="wInd">⏳ &nbsp;Espera: <span id="wWT">0:00</span> &nbsp;·&nbsp; +<span id="wWC">0,00 €</span></div>
+    <div class="sr sr2">
+      <div class="stat"><div class="sv sv-g" id="wKm">0,000</div><div class="sl2">Km recorridos</div></div>
+      <div class="stat"><div class="sv sv-b" id="wWS">0:00</div><div class="sl2">Espera / Disp.</div></div>
+    </div>
+    <div class="stat" style="margin-bottom:12px">
+      <div class="sv sv-y" id="wElapsed">0:00</div>
+      <div class="sl2">Tiempo transcurrido</div>
+    </div>
+    <div class="sb sb-wait" id="wSBar">
+      <div class="sbd sbd-w"></div>
+      <span id="wSTxt">Cliente recogido · Período de gracia (2 min)…</span>
+    </div>
+    <div class="ba">
+      <button class="btn btn-go" onclick="startTrip()">▶ &nbsp;INICIAR TRAYECTO</button>
+      <button class="btn btn-stop" onclick="reqStop()">⏹ &nbsp;FINALIZAR</button>
+    </div>
+  </div>
+
+  <!-- ── RUNNING / PAUSED ── -->
+  <div id="stRun" style="display:none">
+    <div class="mc active" id="mcRun">
+      <div class="sl"></div>
+      <div class="mc-lbl">Importe actual</div>
+      <div class="mc-num pulse" id="rAmt">4,05 €</div>
+    </div>
+    <div class="pi" id="pInd">⏸ &nbsp;Parada: <span id="rPT">0:00</span> &nbsp;·&nbsp; +<span id="rPC">0,00 €</span></div>
+    <div class="sr">
+      <div class="stat"><div class="sv sv-g" id="rKm">0,000</div><div class="sl2">Km</div></div>
+      <div class="stat"><div class="sv sv-b" id="rWait">0:00</div><div class="sl2">Espera</div></div>
+      <div class="stat"><div class="sv sv-o" id="rSpd">0</div><div class="sl2">km/h</div></div>
+    </div>
+    <div class="bk">
+      <div class="bkr"><span class="bkl">Bajada de bandera</span><span class="bkv" id="bdBan">4,05 €</span></div>
+      <div class="bkr"><span class="bkl">Kilometraje</span><span class="bkv" id="bdKm">0,00 €</span></div>
+      <div class="bkr"><span class="bkl">Espera / Disposición</span><span class="bkv" id="bdEsp">0,00 €</span></div>
+      <div class="bkr bkt"><span class="bkl">Total</span><span class="bkv" id="bdTot">4,05 €</span></div>
+    </div>
+    <div class="sb sb-run" id="rSBar">
+      <div class="sbd sbd-r" id="rSDot"></div>
+      <span id="rSTxt">Trayecto en curso…</span>
+    </div>
+    <div class="ba">
+      <button class="btn btn-pause" id="btnPause" onclick="togglePause()">⏸ &nbsp;PAUSA</button>
+      <button class="btn btn-stop" onclick="reqStop()">⏹ &nbsp;FINALIZAR</button>
+    </div>
+  </div>
+
+  <!-- ── FINISHED ── -->
+  <div id="stFin" style="display:none">
+    <div class="mc">
+      <div class="sl"></div>
+      <div class="mc-lbl">Importe final (redondeado al euro)</div>
+      <div class="mc-num green" id="fFin">11 €</div>
+      <div class="mc-note" id="fNote"></div>
+    </div>
+    <div class="bk">
+      <div class="bkr"><span class="bkl">Trayecto (<span id="fKL">0,000</span> km)</span><span class="bkv" id="fKC">—</span></div>
+      <div class="bkr" id="fMinRow" style="display:none"><span class="bkl" style="color:var(--orange)">Mínimo aplicado</span><span class="bkv" style="color:var(--orange)" id="fMin">—</span></div>
+      <div class="bkr"><span class="bkl">Espera/Disp. (<span id="fWL">0:00</span>)</span><span class="bkv" id="fWC">—</span></div>
+      <div class="bkr" id="fBulRow" style="display:none"><span class="bkl">Bultos (<span id="fBulN">0</span> ud.)</span><span class="bkv" id="fBulC">—</span></div>
+      <div class="bkr" id="fSuplRow" style="display:none"><span class="bkl" id="fSuplLbl">Suplemento</span><span class="bkv" id="fSuplC">—</span></div>
+      <div class="bkr"><span class="bkl" style="color:var(--text2)">Subtotal</span><span class="bkv" id="fRaw">—</span></div>
+      <div class="bkr bkt"><span class="bkl">TOTAL A COBRAR</span><span class="bkv" id="fRnd" style="color:var(--green)">—</span></div>
+    </div>
+
+    <!-- Bultos -->
+    <div class="supl-card">
+      <div class="supl-lbl">🧳 Bultos (0,50 € / ud.)</div>
+      <div class="supl-ctrl">
+        <button class="supl-btn" onclick="changeBultos(-1)">−</button>
+        <span class="supl-val" id="bultosVal">0</span>
+        <button class="supl-btn" onclick="changeBultos(+1)">+</button>
+      </div>
+    </div>
+
+    <!-- Suplemento libre -->
+    <div class="supl-card">
+      <div class="supl-lbl">➕ Suplemento adicional</div>
+      <div class="supl-inputs">
+        <input class="supl-input" id="suplDescInput" type="text" placeholder="Descripción (ej: aeropuerto)" maxlength="30" oninput="updateSupl()">
+        <input class="supl-input supl-price" id="suplPriceInput" type="number" min="0" step="0.5" placeholder="€" oninput="updateSupl()">
+      </div>
+    </div>
+
+    <div class="sb sb-done">
+      <div class="sbd sbd-d"></div>
+      <span>Servicio finalizado · IVA 10% incluido</span>
+    </div>
+    <div class="ba">
+      <button class="btn btn-rcpt" onclick="openReceipt()">🧾 &nbsp;Ver recibo</button>
+      <button class="btn btn-new" onclick="newService()">🚕 &nbsp;Nuevo</button>
+      <button class="btn btn-edit btn-f" onclick="openEditPanel()">✏️ &nbsp;Editar datos del recibo</button>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- ══════════════ RECIBO OVERLAY ══════════════ -->
+<div class="overlay hide" id="rcptOverlay">
+  <div class="rcpt" id="rcptContent">
+    <div class="rcpt-band">
+      <div class="rt">TAXI</div>
+      <div class="rl">Aranda de Duero · Burgos</div>
+    </div>
+    <div class="rcpt-body">
+      <div class="rcpt-co">
+        <div class="cn">RAQUEL BRAVO GONZÁLEZ</div>
+        <div class="ci">DNI: 45.421.517-J<br>Licencia Nº 12 · Aranda de Duero (Burgos)<br>Tlf: 686 677 107 · arandataxi12@gmail.com</div>
+      </div>
+      <div class="rnum"><span id="rNum">Recibo nº 001/2025-06-08</span><span id="rDate">—</span></div>
+      <div class="rs">
+        <div class="rr"><span class="rl2">Tarifa</span><span class="rv" id="rTar">—</span></div>
+        <div class="rr"><span class="rl2">Inicio</span><span class="rv" id="rSt">—</span></div>
+        <div class="rr"><span class="rl2">Fin</span><span class="rv" id="rEn">—</span></div>
+        <div class="rr"><span class="rl2">Duración</span><span class="rv" id="rDur">—</span></div>
+        <div class="rr"><span class="rl2">Origen</span><span class="rv" id="rOri" style="font-size:10px;max-width:60%;text-align:right">—</span></div>
+        <div class="rr"><span class="rl2">Destino</span><span class="rv" id="rDst" style="font-size:10px;max-width:60%;text-align:right">—</span></div>
+      </div>
+      <div class="rs">
+        <div class="rr"><span class="rl2">Bajada de bandera</span><span class="rv" id="rBan">—</span></div>
+        <div class="rr"><span class="rl2">Trayecto (<span id="rKL">0,000</span> km)</span><span class="rv" id="rKC">—</span></div>
+        <div class="rr" id="rMinRow"><span class="rl2">Mínimo aplicado</span><span class="rv" id="rMin">—</span></div>
+        <div class="rr"><span class="rl2">Espera/Disp. (<span id="rWL">0:00</span>)</span><span class="rv" id="rWC">—</span></div>
+        <div class="rr" id="rBulRow"><span class="rl2">Bultos (<span id="rBulN">0</span> ud.)</span><span class="rv" id="rBulC">—</span></div>
+        <div class="rr" id="rSuplRow"><span class="rl2" id="rSuplLbl2">Suplemento</span><span class="rv" id="rSuplC2">—</span></div>
+      </div>
+      <div class="rs" style="border-bottom:none">
+        <div class="rr rsub"><span class="rl2">Subtotal</span><span class="rv" id="rSub">—</span></div>
+        <div class="rr rtot"><span class="rl2">TOTAL</span><span class="rv" id="rTot">—</span></div>
+        <div class="rr riva"><span class="rl2">IVA 10% incluido en el importe</span><span class="rv" id="rIva">—</span></div>
+      </div>
+      <div class="rcpt-qr">
+        <div id="qrcode"></div>
+        <div class="rcpt-qr-note">Escanea para ver el resumen del recibo</div>
+      </div>
+    </div>
+    <div class="rcpt-foot">Taxi Aranda de Duero · Licencia Nº 12<br>Tarifa homologada · IVA incluido (10%)<br>Gracias por viajar con nosotros</div>
+    <div class="ra">
+      <button class="rab ra-pdf" onclick="downloadPDF()">📄 PDF</button>
+      <button class="rab ra-wa" onclick="shareWhatsApp()">💬 WhatsApp</button>
+      <button class="rab ra-mail" onclick="shareMail()">✉️ Enviar por correo</button>
+      <button class="rab ra-share" id="btnNativeShare" style="display:none" onclick="nativeShare()">📤 Compartir</button>
+      <button class="rab ra-close" onclick="closeReceipt()">✕ Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit panel -->
+<div class="edit-overlay hide" id="editOverlay">
+  <div class="edit-panel">
+    <div class="edit-hdr">
+      <span>✏️ Editar recibo</span>
+      <button class="edit-close" onclick="closeEditPanel()">✕</button>
+    </div>
+    <div class="edit-body">
+      <div class="edit-field"><label>Bajadas de bandera (0, 0.5, 1…)</label><input type="number" id="editBandera" step="0.5" min="0" max="5"></div>
+      <div class="edit-field"><label>Kilómetros</label><input type="number" id="editKm" step="0.001" min="0"></div>
+      <div class="edit-field"><label>Tiempo espera (minutos)</label><input type="number" id="editWait" step="1" min="0"></div>
+      <div class="edit-field"><label>Origen</label><input type="text" id="editOri" maxlength="80"></div>
+      <div class="edit-field"><label>Destino</label><input type="text" id="editDst" maxlength="80"></div>
+      <div class="edit-field"><label>Hora inicio (HH:MM)</label><input type="time" id="editStart"></div>
+      <div class="edit-field"><label>Hora fin (HH:MM)</label><input type="time" id="editEnd"></div>
+    </div>
+    <button class="edit-save" onclick="saveEdit()">Aplicar cambios y recalcular</button>
+  </div>
+</div>
+
+<!-- History overlay -->
+<div class="hist-overlay hide" id="histOverlay">
+  <div class="hist-hdr">
+    <span class="hist-hdr-title">🧾 Historial de recibos</span>
+    <button class="hist-close" onclick="closeHistory()">✕</button>
+  </div>
+  <div class="hist-filter">
+    <input type="month" id="histMonth">
+    <button class="hist-filter-btn" onclick="renderHistory()">Ver</button>
+  </div>
+  <div class="hist-list" id="histList"></div>
+</div>
+
+<!-- Confirm stop -->
+<div class="conf hide" id="confOverlay">
+  <div class="conf-box">
+    <h3>¿Finalizar servicio?</h3>
+    <p>Se calculará el importe total y se generará el recibo de la carrera.</p>
+    <div class="conf-btns">
+      <button class="cb-y" onclick="confirmStop()">Finalizar</button>
+      <button class="cb-n" onclick="ge('confOverlay').classList.add('hide')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- ═══════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────
+// STATE
+// ─────────────────────────────────────────────────
+const S = {
+  phase: 'idle',
+  tariff:'diurna', bandera:0, kmRate:0, waitRate:0,
+  startTime:null, endTime:null, tripStartTime:null,
+  serviceStartMs: 0,
+  graceTimer:null, waitChargeStarted:false, waitChargeStart:null,
+  accWaitMs:0,
+  manualPaused:false,
+  autoStopTimer:null, autoStopChargeStarted:false, autoStopChargeStart:null, autoStopStart:null,
+  totalKm:0, lastPos:null, lastPosTm:null, startPos:null,
+  currentSpeed:0,
+  ticker:null,
+  gpsWatch:null, gpsOk:false,
+  finalRaw:0, finalRounded:0,
+  // Suplementos
+  bultos:0,           // unidades de bultos (0.50€/ud)
+  suplDesc:'',        // descripción suplemento libre
+  suplImporte:0,      // importe suplemento libre
+  receiptIdStr:'',
+  addrOrigin:'—', addrDest:'—', addrOriginSet:false, addrDestSet:false,
+};
+
+// ─────────────────────────────────────────────────
+// FESTIVOS & TARIFA
+// ─────────────────────────────────────────────────
+const FEST_FIJO = ['01-01','01-06','05-01','08-15','10-12','11-01','12-06','12-08','12-25','04-23','06-24','09-08'];
+const FEST_MOV  = ['2024-03-28','2024-03-29','2025-04-17','2025-04-18','2026-04-02','2026-04-03'];
+function isFestivo(d){
+  const mm=pad2(d.getMonth()+1)+'-'+pad2(d.getDate());
+  return FEST_FIJO.includes(mm)||FEST_MOV.includes(isoDate(d));
+}
+function getTariff(d){
+  const m=d.getHours()*60+d.getMinutes(),dw=d.getDay();
+  if(m>=23*60||m<7*60)return'nocturna';
+  if(dw===6&&m>=16*60)return'nocturna';
+  if(dw===0||isFestivo(d))return'nocturna';
+  return'diurna';
+}
+function getRates(t){return t==='nocturna'?{bandera:5.05,km:1.60,wait:19.60}:{bandera:4.05,km:1.40,wait:16.50};}
+
+// ─────────────────────────────────────────────────
+// CLOCK
+// ─────────────────────────────────────────────────
+setInterval(()=>{const n=new Date();ge('clock').textContent=n.toLocaleTimeString('es-ES');updateTariffChip(n);},1000);
+updateTariffChip(new Date());
+function updateTariffChip(d){
+  const t=getTariff(d),chip=ge('tc'),dot=ge('tcdot'),lbl=ge('tclbl');
+  if(t==='nocturna'){chip.className='tc tc-night';dot.className='tc-dot tcd-b';lbl.textContent='T2 · Nocturna/Festiva';}
+  else{chip.className='tc tc-day';dot.className='tc-dot tcd-y';lbl.textContent='T1 · Diurna';}
+}
+
+// ─────────────────────────────────────────────────
+// WAKELOCK + NOSLEEP — evitar que el dispositivo
+// suspenda watchPosition durante el trayecto
+// ─────────────────────────────────────────────────
+let wakeLock = null;
+
+async function requestWakeLock(){
+  // 1) Screen Wake Lock API (Chrome 84+, Edge, Opera)
+  if('wakeLock' in navigator){
+    try{
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', ()=>{
+        // Si se libera (llamada, batería baja…) intentar re-adquirirlo
+        if(S.phase === 'running') requestWakeLock();
+      });
+      return;
+    }catch(e){ /* fallthrough a NoSleep */ }
+  }
+  // 2) Fallback: NoSleep.js (reproduce un vídeo silencioso invisible)
+  if(window._noSleep) window._noSleep.enable();
+}
+
+function releaseWakeLock(){
+  if(wakeLock){ wakeLock.release(); wakeLock = null; }
+  if(window._noSleep) window._noSleep.disable();
+}
+
+// Cargar NoSleep.js dinámicamente como fallback
+(function loadNoSleep(){
+  const s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.12.0/NoSleep.min.js';
+  s.onload = () => { window._noSleep = new NoSleep(); };
+  document.head.appendChild(s);
+})();
+
+// ─────────────────────────────────────────────────
+// BLOQUEO DE CIERRE DURANTE SERVICIO ACTIVO
+// beforeunload: muestra aviso en navegadores de escritorio
+// pagehide:     guarda estado en sessionStorage (móvil)
+// ─────────────────────────────────────────────────
+const ACTIVE_PHASES = ['waiting','running'];
+
+window.addEventListener('beforeunload', e => {
+  if(ACTIVE_PHASES.includes(S.phase)){
+    const msg = '⚠️ Hay un servicio en curso. Finaliza el servicio antes de cerrar la app.';
+    e.preventDefault();
+    e.returnValue = msg; // requerido por Chrome
+    return msg;
+  }
+});
+
+// En móvil el beforeunload no siempre se dispara; pagehide es más fiable
+window.addEventListener('pagehide', () => {
+  if(ACTIVE_PHASES.includes(S.phase)){
+    // Persistir estado mínimo para recuperarlo si el usuario vuelve
+    try{
+      sessionStorage.setItem('taxi_active', JSON.stringify({
+        phase:       S.phase,
+        receiptIdStr: S.receiptIdStr,
+        startTime:   S.startTime?.toISOString(),
+        bandera:     S.bandera,
+        totalKm:     S.totalKm,
+        accWaitMs:   S.accWaitMs + (S.waitChargeStart ? Date.now()-S.waitChargeStart : 0),
+        finalRaw:    S.finalRaw,
+        tariff:      S.tariff,
+      }));
+    }catch(e){}
+  }
+});
+
+// Al cargar, recuperar si había un servicio interrumpido
+(function recoverIfNeeded(){
+  try{
+    const saved = JSON.parse(sessionStorage.getItem('taxi_active')||'null');
+    if(saved && ACTIVE_PHASES.includes(saved.phase)){
+      sessionStorage.removeItem('taxi_active');
+      // Mostrar aviso de recuperación en lugar de arrancar desde idle
+      setTimeout(()=>{
+        toast('⚠️ Servicio interrumpido detectado. Revisa el estado.');
+      }, 1500);
+    }
+  }catch(e){}
+})();
+
+// Reactivar wakeLock si la página vuelve al foco (usuario desbloquea pantalla)
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && S.phase === 'running'){
+    requestWakeLock();
+    // Forzar reinicio del watchPosition por si fue suspendido
+    if(S.gpsWatch != null){
+      navigator.geolocation.clearWatch(S.gpsWatch);
+      S.gpsWatch = null;
+    }
+    S.gpsWatch = navigator.geolocation.watchPosition(
+      onGPSSuccess, onGPSError,
+      {enableHighAccuracy:true, timeout:20000, maximumAge:1000}
+    );
+  }
+});
+
+// ─────────────────────────────────────────────────
+// GPS
+// ─────────────────────────────────────────────────
+function initGPS(){
+  if(!navigator.geolocation){
+    setGPS('❌','GPS no disponible','c-off');
+    ge('idleGpsStatus').textContent='no disponible';
+    return;
+  }
+  if(S.gpsWatch != null){
+    navigator.geolocation.clearWatch(S.gpsWatch);
+    S.gpsWatch = null;
+  }
+  // maximumAge:0 — siempre posición fresca
+  // timeout:10000 — reintentar cada 10s si no hay señal
+  S.gpsWatch = navigator.geolocation.watchPosition(
+    onGPSSuccess, onGPSError,
+    {enableHighAccuracy:true, timeout:10000, maximumAge:0}
+  );
+}
+
+function onGPSSuccess(pos){
+  const c   = pos.coords;
+  const now = Date.now();
+  S.gpsOk   = true;
+  ge('gpsSettingsBtn').classList.add('hide');
+  ge('idleGpsStatus').textContent = 'activo ✓';
+
+  // ── Velocidad ──
+  let speedKmh = 0;
+  if(c.speed != null && c.speed >= 0){
+    speedKmh = c.speed * 3.6;
+  } else if(S.lastPos && S.lastPosTm){
+    const dtSec = (now - S.lastPosTm) / 1000;
+    if(dtSec > 0 && dtSec < 120){
+      const dKm = haversine(S.lastPos.lat, S.lastPos.lng, c.latitude, c.longitude);
+      speedKmh  = (dKm / dtSec) * 3600;
+    }
+  }
+  speedKmh = Math.min(speedKmh, 180);
+  S.currentSpeed = Math.round(speedKmh);
+
+  ge('rSpd') && (ge('rSpd').textContent = S.currentSpeed);
+  setGPS('🛰️', `GPS ±${Math.round(c.accuracy)}m · ${S.currentSpeed} km/h`, 'c-ok');
+
+  // ── Acumular distancia ──
+  // Acumula incluso si venimos de background (dtSec puede ser grande):
+  // en ese caso dividimos el segmento en tramos de 10s para detectar glitches
+  if(S.phase === 'running' && !S.manualPaused && S.lastPos){
+    const dtSec = S.lastPosTm ? (now - S.lastPosTm) / 1000 : 999;
+    const acc   = c.accuracy || 999;
+    const d     = haversine(S.lastPos.lat, S.lastPos.lng, c.latitude, c.longitude);
+
+    if(acc <= 120 && dtSec >= 0.5){
+      // Velocidad implícita del segmento (km/h)
+      const impliedKmh = dtSec > 0 ? (d / dtSec) * 3600 : 999;
+
+      // Filtrar: velocidad implícita razonable para un taxi (<130 km/h)
+      // y distancia mínima de 3m (no acumular ruido estático)
+      if(d >= 0.003 && impliedKmh < 130){
+        // Si el intervalo es muy largo (background), verificar coherencia
+        // dividiendo: si d/dtSec > 5 km/h (está moviéndose) aceptar
+        if(dtSec <= 60 || impliedKmh > 5){
+          S.totalKm += d;
+        }
+      }
+    }
+  }
+
+  const dtSecForStop = S.lastPosTm ? (now - S.lastPosTm) / 1000 : 999;
+  S.lastPos   = {lat: c.latitude, lng: c.longitude};
+  S.lastPosTm = now;
+
+  // ── Arranque automático ──
+  if(S.phase === 'waiting' && S.currentSpeed > 5){
+    toast('🚕 Trayecto iniciado automáticamente');
+    startTrip();
+    return;
+  }
+
+  // ── Detección parada/marcha ──
+  if(S.phase === 'running' && !S.manualPaused){
+    const speedReliable = (c.speed != null) || (dtSecForStop >= 1 && dtSecForStop < 60);
+    if(speedReliable){
+      if(S.currentSpeed <= 4)   autoStopDetected();
+      else if(S.currentSpeed > 7) autoResumeDetected();
+    }
+  }
+
+  // Geocode origen
+  if(S.phase === 'waiting' && !S.addrOriginSet){
+    reverseGeocode(c.latitude, c.longitude, (addr)=>{ S.addrOrigin = addr; S.addrOriginSet = true; });
+  }
+}
+
+// Vehículo parado: iniciar grace timer si no estaba ya
+function autoStopDetected(){
+  if(S.autoStopStart != null) return; // ya en parada, no re-iniciar
+  S.autoStopStart         = Date.now();
+  S.autoStopChargeStarted = false;
+  S.autoStopChargeStart   = null;
+  // Tras 2 min se cobra desde el inicio de la parada (retroactivo)
+  S.autoStopTimer = setTimeout(()=>{
+    if(S.phase !== 'running' || S.manualPaused || S.autoStopStart == null) return;
+    S.autoStopChargeStarted = true;
+    S.autoStopChargeStart   = S.autoStopStart; // retroactivo desde minuto 0
+    ge('rSTxt').textContent = '🚦 Parada · Cobrando espera…';
+    ge('rSBar').className   = 'sb sb-pau';
+    ge('rSDot').className   = 'sbd sbd-p';
+    ge('pInd').classList.add('on');
+  }, 2 * 60 * 1000);
+}
+
+// Vehículo en marcha: cerrar parada automática
+function autoResumeDetected(){
+  if(S.autoStopStart == null) return; // no había parada activa
+  clearTmr(S.autoStopTimer); S.autoStopTimer = null;
+  if(S.autoStopChargeStarted && S.autoStopChargeStart){
+    S.accWaitMs           += Date.now() - S.autoStopChargeStart;
+    S.autoStopChargeStart  = null;
+    S.autoStopChargeStarted= false;
+  }
+  S.autoStopStart = null;
+  ge('rSTxt').textContent = 'Trayecto en curso…';
+  ge('rSBar').className   = 'sb sb-run';
+  ge('rSDot').className   = 'sbd sbd-r';
+  ge('pInd').classList.remove('on');
+}
+
+function onGPSError(err){
+  S.gpsOk=false;
+  ge('idleGpsStatus').textContent='bloqueado';
+  if(err.code===1){
+    setGPS('🔒','Ubicación bloqueada','c-warn');
+    ge('gpsSettingsBtn').classList.remove('hide');
+  } else if(err.code===2){
+    setGPS('📡','Señal GPS no disponible','c-warn');
+  } else {
+    setGPS('⏱️','Tiempo de espera — reintentando…','c-warn');
+    setTimeout(initGPS, 3000);
+  }
+}
+
+function openSettingsPanel(){
+  const ua = navigator.userAgent;
+  const isIOS     = /iPhone|iPad|iPod/i.test(ua);
+  const isSamsung = /SamsungBrowser/i.test(ua);
+  const isFirefox = /Firefox/i.test(ua);
+  // Chrome Android is the default fallback
+
+  const body = ge('stpBody');
+  body.innerHTML = '';
+
+  if(isIOS){
+    ge('stpTitle').textContent = 'Activar ubicación en iPhone/iPad';
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">El permiso está bloqueado en los Ajustes del sistema. Sigue estos pasos:</p>
+      <div class="stp-section-lbl">Ruta en Ajustes del iPhone</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row"><span class="mr-icon">⚙️</span><span class="mr-lbl">Ajustes</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🔒</span><span class="mr-lbl"><strong>Privacidad y seguridad</strong></span><span class="mr-arrow">›</span></div>
+      </div>
+      <div class="stp-arrow">↓</div>
+      <div class="stp-mock" style="margin-top:8px">
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Localización</strong></span><span class="mr-arrow">›</span></div>
+      </div>
+      <div class="stp-arrow">↓</div>
+      <div class="stp-mock" style="margin-top:8px">
+        <div class="stp-mock-row"><span class="mr-icon">🔵</span><span class="mr-lbl">Servicios de Localización</span><div class="mr-toggle"><div class="mr-toggle-dot"></div></div></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🧭</span><span class="mr-lbl"><strong>Safari</strong></span><span class="mr-badge">Al usar la app</span></div>
+      </div>
+      <div class="stp-steps" style="margin-top:14px">
+        <div class="stp-step"><div class="stp-step-num">1</div><div class="stp-step-txt">Abre <strong>Ajustes</strong> → <strong>Privacidad y seguridad</strong></div></div>
+        <div class="stp-step"><div class="stp-step-num">2</div><div class="stp-step-txt">Toca <strong>Localización</strong> y activa <strong>Servicios de Localización</strong></div></div>
+        <div class="stp-step"><div class="stp-step-num">3</div><div class="stp-step-txt">Busca <strong>Safari</strong> en la lista → selecciona <strong>"Al usar la app"</strong></div></div>
+        <div class="stp-step"><div class="stp-step-num">4</div><div class="stp-step-txt">Vuelve aquí y pulsa <strong>Reintentar</strong></div></div>
+      </div>`;
+  } else if(isSamsung){
+    ge('stpTitle').textContent = 'Activar ubicación · Samsung Internet';
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">El permiso está bloqueado en el navegador. Dos formas de activarlo:</p>
+      <div class="stp-section-lbl">Opción 1 · Desde el navegador</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">🔒</span><span class="mr-lbl"><strong>Icono 🔒 barra de direcciones</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🛡️</span><span class="mr-lbl"><strong>Permisos</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Ubicación</strong> → <strong>Permitir</strong></span><span class="mr-badge">Activar</span></div>
+      </div>
+      <div class="stp-section-lbl" style="margin-top:14px">Opción 2 · Desde Ajustes del móvil</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">⚙️</span><span class="mr-lbl"><strong>Ajustes</strong> → <strong>Apps</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🌐</span><span class="mr-lbl"><strong>Samsung Internet</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🛡️</span><span class="mr-lbl"><strong>Permisos</strong> → <strong>Ubicación</strong></span><span class="mr-badge">Permitir</span></div>
+      </div>`;
+  } else if(isFirefox){
+    ge('stpTitle').textContent = 'Activar ubicación · Firefox';
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">El permiso está bloqueado. Sigue uno de estos pasos:</p>
+      <div class="stp-section-lbl">Opción 1 · Desde la barra de Firefox</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">🔒</span><span class="mr-lbl"><strong>Icono 🔒 barra de direcciones</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Acceder a tu ubicación</strong> → elimina el bloqueo</span><span class="mr-badge">Borrar</span></div>
+        <div class="stp-mock-row"><span class="mr-icon">🔄</span><span class="mr-lbl">Recarga la página y pulsa <strong>Permitir</strong></span></div>
+      </div>
+      <div class="stp-section-lbl" style="margin-top:14px">Opción 2 · Ajustes de Firefox</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">☰</span><span class="mr-lbl"><strong>Menú</strong> → <strong>Ajustes</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🔒</span><span class="mr-lbl"><strong>Privacidad</strong> → <strong>Permisos del sitio</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Ubicación</strong> → elimina este sitio del bloqueo</span></div>
+      </div>`;
+  } else {
+    // Chrome Android
+    ge('stpTitle').textContent = 'Activar ubicación · Chrome';
+    body.innerHTML = `
+      <p style="font-size:12px;color:var(--text3);margin-bottom:14px">El permiso está bloqueado en Chrome. Sigue estos pasos:</p>
+      <div class="stp-section-lbl">Paso 1 · Desde Chrome</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">🔒</span><span class="mr-lbl"><strong>Icono 🔒 barra de direcciones</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🛡️</span><span class="mr-lbl"><strong>Permisos</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Ubicación</strong></span><div class="mr-toggle"><div class="mr-toggle-dot"></div></div></div>
+      </div>
+      <div class="stp-section-lbl" style="margin-top:14px">Si sigue bloqueado · Ajustes del móvil</div>
+      <div class="stp-mock">
+        <div class="stp-mock-row active"><span class="mr-icon">⚙️</span><span class="mr-lbl"><strong>Ajustes</strong> → <strong>Apps</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🌐</span><span class="mr-lbl"><strong>Chrome</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">🛡️</span><span class="mr-lbl"><strong>Permisos</strong></span><span class="mr-arrow">›</span></div>
+        <div class="stp-mock-row active"><span class="mr-icon">📍</span><span class="mr-lbl"><strong>Ubicación</strong> → <strong>Permitir solo al usar la app</strong></span><span class="mr-badge">✓</span></div>
+      </div>`;
+  }
+
+  ge('stpOverlay').classList.remove('hide');
+}
+
+function closeSettingsPanel(){
+  ge('stpOverlay').classList.add('hide');
+}
+
+function retryGPS(){
+  ge('gpsSettingsBtn').classList.add('hide');
+  setGPS('📡','Solicitando ubicación…','c-off');
+  ge('idleGpsStatus').textContent='iniciando…';
+  initGPS();
+}
+
+function setGPS(ic,txt,cls){
+  ge('gpsIcon').textContent=ic;
+  const t=ge('gpsTxt');t.textContent=txt;t.className=cls;
+}
+
+function haversine(la1,lo1,la2,lo2){
+  const R=6371,r=Math.PI/180;
+  const dLa=(la2-la1)*r,dLo=(lo2-lo1)*r;
+  const a=Math.sin(dLa/2)**2+Math.cos(la1*r)*Math.cos(la2*r)*Math.sin(dLo/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function reverseGeocode(lat,lng,cb){
+  fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&addressdetails=1`,
+    {headers:{'Accept-Language':'es'}})
+    .then(r=>r.json())
+    .then(d=>{
+      const a=d.address||{};
+      const parts=[a.road,a.house_number,a.town||a.city||a.village||a.municipality].filter(Boolean);
+      cb(parts.join(' ')||d.display_name||'—');
+    })
+    .catch(()=>cb('—'));
+}
+
+// ─────────────────────────────────────────────────
+// SERVICE FLOW
+// ─────────────────────────────────────────────────
+function startService(){
+  const now=new Date();
+  S.tariff=getTariff(now);
+  const r=getRates(S.tariff);
+  Object.assign(S,{
+    bandera:r.bandera, kmRate:r.km, waitRate:r.wait,
+    startTime:now, endTime:null, tripStartTime:null,
+    serviceStartMs: now.getTime(),
+    waitChargeStarted:false, waitChargeStart:null, accWaitMs:0,
+    manualPaused:false,
+    autoStopTimer:null, autoStopChargeStarted:false, autoStopChargeStart:null, autoStopStart:null,
+    totalKm:0, finalRaw:0, finalRounded:0,
+    addrOrigin:'—', addrDest:'—', addrOriginSet:false, addrDestSet:false,
+    phase:'waiting'
+  });
+
+  // Reverse geocode origin
+  if(S.lastPos) reverseGeocode(S.lastPos.lat,S.lastPos.lng,(a)=>{S.addrOrigin=a;});
+
+  ge('wAmt').textContent=fmt(S.bandera);
+  ge('wSub').textContent='Bajada de bandera aplicada';
+  ge('wSTxt').textContent='Cliente recogido · Período de gracia 2 min…';
+  ge('wInd').classList.remove('on');
+  ge('wKm').textContent='0,000';
+  ge('wWS').textContent='0:00';
+
+  S.graceTimer = setTimeout(()=>{
+    if(S.phase !== 'waiting') return;
+    // Cobrar desde el minuto 0 del servicio (retroactivo, incluye los 2 min de gracia)
+    S.waitChargeStarted = true;
+    S.waitChargeStart   = S.serviceStartMs;
+    ge('wSTxt').textContent = '⏳ Tiempo de espera en curso…';
+    ge('wInd').classList.add('on');
+  }, 2 * 60 * 1000);
+
+  showSt('stWait');
+  startTicker();
+}
+
+function startTrip(){
+  clearTmr(S.graceTimer);
+  if(S.waitChargeStarted && S.waitChargeStart){
+    S.accWaitMs += Date.now() - S.waitChargeStart;
+    S.waitChargeStart = null; S.waitChargeStarted = false;
+  }
+  S.phase = 'running';
+  S.tripStartTime = new Date();
+  S.manualPaused = false;
+  S.startPos = S.lastPos ? {lat: S.lastPos.lat, lng: S.lastPos.lng} : null;
+  S.lastPos = null; S.lastPosTm = null;
+
+  // Activar WakeLock para que el GPS no se interrumpa con la pantalla apagada
+  requestWakeLock();
+
+  // Avisar si WakeLock no está disponible en este dispositivo
+  if(!('wakeLock' in navigator) && !window._noSleep){
+    toast('⚠️ Mantén la pantalla activa durante el trayecto');
+  }
+
+  ge('rAmt').textContent = fmt(S.bandera);
+  ge('bdBan').textContent = fmt(S.bandera);
+  ge('rSTxt').textContent = 'Trayecto en curso…';
+  ge('rSBar').className = 'sb sb-run';
+  ge('rSDot').className = 'sbd sbd-r';
+  ge('btnPause').textContent = '⏸  PAUSA';
+  ge('mcRun').className = 'mc active';
+  ge('pInd').classList.remove('on');
+  showSt('stRun');
+}
+
+function togglePause(){
+  if(!S.manualPaused){
+    // ── Activar pausa manual ──
+    S.manualPaused = true;
+    // Suspender parada automática si estaba activa
+    clearTmr(S.autoStopTimer); S.autoStopTimer = null;
+    if(S.autoStopChargeStarted && S.autoStopChargeStart){
+      S.accWaitMs           += Date.now() - S.autoStopChargeStart;
+      S.autoStopChargeStart  = null;
+      S.autoStopChargeStarted= false;
+    }
+    S.autoStopStart = null;
+    ge('btnPause').textContent  = '▶  REANUDAR';
+    ge('rSTxt').textContent     = '⏸ Pausa manual · Facturación suspendida';
+    ge('rSBar').className       = 'sb sb-pau';
+    ge('rSDot').className       = 'sbd sbd-p';
+    ge('mcRun').className       = 'mc paused-c';
+    ge('pInd').classList.remove('on'); // el indicador de parada auto no aplica aquí
+  } else {
+    // ── Desactivar pausa manual ──
+    S.manualPaused = false;
+    ge('btnPause').textContent  = '⏸  PAUSA';
+    ge('rSTxt').textContent     = 'Trayecto en curso…';
+    ge('rSBar').className       = 'sb sb-run';
+    ge('rSDot').className       = 'sbd sbd-r';
+    ge('mcRun').className       = 'mc active';
+  }
+}
+
+function reqStop(){ge('confOverlay').classList.remove('hide');}
+function confirmStop(){
+  ge('confOverlay').classList.add('hide');
+  stopService();
+}
+
+function stopService(){
+  clearTmr(S.graceTimer); clearTmr(S.autoStopTimer);
+
+  // Cerrar espera inicial si estaba activa
+  if(S.waitChargeStarted && S.waitChargeStart){
+    S.accWaitMs += Date.now() - S.waitChargeStart;
+    S.waitChargeStart = null; S.waitChargeStarted = false;
+  }
+  // Cerrar parada automática si estaba activa
+  if(S.autoStopChargeStarted && S.autoStopChargeStart){
+    S.accWaitMs      += Date.now() - S.autoStopChargeStart;
+    S.autoStopChargeStart   = null; S.autoStopChargeStarted = false;
+  }
+  S.autoStopStart = null;
+  S.manualPaused  = false;
+
+  stopTicker();
+  releaseWakeLock();
+  S.endTime = new Date(); S.phase = 'finished';
+
+  if(S.lastPos) reverseGeocode(S.lastPos.lat, S.lastPos.lng, (a)=>{S.addrDest = a;});
+
+  const PLAZA = {lat: 41.6669, lng: -3.6901};
+  const distOrigen  = S.startPos ? haversine(S.startPos.lat, S.startPos.lng, PLAZA.lat, PLAZA.lng) : 0;
+  const distDestino = S.lastPos  ? haversine(S.lastPos.lat,  S.lastPos.lng,  PLAZA.lat, PLAZA.lng) : 0;
+  if((S.startPos && distOrigen > 10) || (S.lastPos && distDestino > 10)){
+    S.bandera = 0;
+    toast('ℹ️ Bajada de bandera anulada — trayecto fuera del municipio');
+  }
+
+  const MINIMO = S.tariff === 'nocturna' ? 7.00 : 6.00;
+  const kC = S.totalKm * S.kmRate;
+  const wC = (S.accWaitMs / 3600000) * S.waitRate;
+  // El mínimo se aplica solo al importe de trayecto (bandera+km), sin espera
+  const tripCost = Math.max(S.bandera + kC, MINIMO);
+  S.finalRaw     = tripCost + wC;
+  S.finalRounded = Math.round(S.finalRaw);
+  S.bultos       = 0;
+  S.suplDesc     = '';
+  S.suplImporte  = 0;
+
+  const dk  = isoDate(S.endTime);
+  const cnt = incrCounter(dk);
+  S.receiptIdStr = `${String(cnt).padStart(3,'0')}/${dk}`;
+
+  renderFinished(kC, wC, tripCost);
+}
+
+// ─────────────────────────────────────────────────
+// RENDER FINISHED STATE + SUPPLEMENTS + EDIT
+// ─────────────────────────────────────────────────
+function renderFinished(kC, wC, tripCost){
+  const MINIMO    = S.tariff === 'nocturna' ? 7.00 : 6.00;
+  const minApplied= (S.bandera + kC) < MINIMO;
+  const bultosC   = S.bultos * 0.50;
+  const suplC     = S.suplImporte || 0;
+  S.finalRaw      = tripCost + wC + bultosC + suplC;
+  S.finalRounded  = Math.round(S.finalRaw);
+
+  ge('fFin').textContent  = `${S.finalRounded} €`;
+  ge('fNote').textContent = `Sin redondear: ${fmt(S.finalRaw)}`;
+  ge('fKL').textContent   = fmtKm(S.totalKm);
+  ge('fKC').textContent   = fmt(kC);
+  ge('fWL').textContent   = fmtMs(S.accWaitMs);
+  ge('fWC').textContent   = fmt(wC);
+
+  if(minApplied){ ge('fMinRow').style.display=''; ge('fMin').textContent=`Mín. ${fmt(MINIMO)} aplicado`; }
+  else { ge('fMinRow').style.display='none'; }
+
+  ge('bultosVal').textContent = S.bultos;
+  if(S.bultos > 0){
+    ge('fBulRow').style.display=''; ge('fBulN').textContent=S.bultos; ge('fBulC').textContent=fmt(bultosC);
+  } else { ge('fBulRow').style.display='none'; }
+
+  if(suplC > 0){
+    ge('fSuplRow').style.display=''; ge('fSuplLbl').textContent=S.suplDesc||'Suplemento'; ge('fSuplC').textContent=fmt(suplC);
+  } else { ge('fSuplRow').style.display='none'; }
+
+  ge('fRaw').textContent = fmt(S.finalRaw);
+  ge('fRnd').textContent = `${S.finalRounded},00 €`;
+
+  saveReceiptToHistory({
+    id:S.receiptIdStr, tariff:S.tariff,
+    startTime:S.startTime?.toISOString(), endTime:S.endTime?.toISOString(),
+    bandera:S.bandera, totalKm:S.totalKm, kmRate:S.kmRate,
+    accWaitMs:S.accWaitMs, waitRate:S.waitRate,
+    bultos:S.bultos, suplDesc:S.suplDesc, suplImporte:S.suplImporte,
+    finalRaw:S.finalRaw, finalRounded:S.finalRounded,
+    addrOrigin:S.addrOrigin, addrDest:S.addrDest,
+  });
+  showSt('stFin');
+}
+
+function changeBultos(delta){
+  S.bultos = Math.max(0, S.bultos + delta);
+  recalcTotal();
+}
+
+function updateSupl(){
+  S.suplDesc    = (ge('suplDescInput').value||'').trim();
+  S.suplImporte = Math.max(0, parseFloat(ge('suplPriceInput').value)||0);
+  recalcTotal();
+}
+
+function recalcTotal(){
+  const MINIMO  = S.tariff==='nocturna' ? 7.00 : 6.00;
+  const kC      = S.totalKm * S.kmRate;
+  const wC      = (S.accWaitMs/3600000) * S.waitRate;
+  renderFinished(kC, wC, Math.max(S.bandera+kC, MINIMO));
+}
+
+function openEditPanel(){
+  const rates   = getRates(S.tariff);
+  const banUnits= rates.bandera > 0 ? (S.bandera / rates.bandera) : (S.bandera > 0 ? 1 : 0);
+  ge('editBandera').value= banUnits.toFixed(1);
+  ge('editKm').value     = S.totalKm.toFixed(3);
+  ge('editWait').value   = Math.round(S.accWaitMs/60000);
+  ge('editOri').value    = S.addrOrigin!=='—' ? S.addrOrigin : '';
+  ge('editDst').value    = S.addrDest!=='—'   ? S.addrDest   : '';
+  ge('editStart').value  = S.startTime ? S.startTime.toTimeString().slice(0,5) : '';
+  ge('editEnd').value    = S.endTime   ? S.endTime.toTimeString().slice(0,5)   : '';
+  ge('editOverlay').classList.remove('hide');
+}
+function closeEditPanel(){ ge('editOverlay').classList.add('hide'); }
+function saveEdit(){
+  const rates    = getRates(S.tariff);
+  const banUnits = Math.max(0, parseFloat(ge('editBandera').value) ?? 1);
+  S.bandera   = banUnits * rates.bandera;
+  S.totalKm   = Math.max(0, parseFloat(ge('editKm').value)||0);
+  S.accWaitMs = Math.max(0, parseFloat(ge('editWait').value)||0)*60000;
+  S.addrOrigin= ge('editOri').value.trim()||'—';
+  S.addrDest  = ge('editDst').value.trim()||'—';
+  const tSt=ge('editStart').value, tEn=ge('editEnd').value;
+  if(S.startTime&&tSt){const[h,m]=tSt.split(':');S.startTime.setHours(+h,+m,0,0);}
+  if(S.endTime&&tEn){const[h,m]=tEn.split(':');S.endTime.setHours(+h,+m,0,0);}
+  closeEditPanel(); recalcTotal(); toast('✓ Recibo actualizado');
+}
+
+function newService(){
+  S.phase = 'idle';
+  S.manualPaused = false;
+  S.autoStopStart = null; clearTmr(S.autoStopTimer); S.autoStopTimer = null;
+  S.autoStopChargeStarted = false; S.autoStopChargeStart = null;
+  S.lastPos = null; S.lastPosTm = null;
+  stopTicker();
+  releaseWakeLock();
+  showSt('stIdle');
+}
+
+// ─────────────────────────────────────────────────
+// TICKER
+// ─────────────────────────────────────────────────
+function startTicker(){stopTicker();S.ticker=setInterval(tick,500);}
+function stopTicker(){if(S.ticker)clearInterval(S.ticker);S.ticker=null;}
+
+function tick(){
+  const now = Date.now();
+
+  // Velocímetro siempre visible en running (incluso en pausa manual)
+  if(S.phase === 'running') ge('rSpd').textContent = S.currentSpeed;
+
+  // ── Tiempo de espera total acumulado ──
+  let wMs = S.accWaitMs;
+  if(S.phase === 'waiting' && S.waitChargeStarted && S.waitChargeStart)
+    wMs += now - S.waitChargeStart;
+  if(S.phase === 'running' && !S.manualPaused && S.autoStopChargeStarted && S.autoStopChargeStart)
+    wMs += now - S.autoStopChargeStart;
+
+  const kC  = S.totalKm * S.kmRate;
+  const wC  = (wMs / 3600000) * S.waitRate;
+  const tot = S.bandera + kC + wC;
+
+  if(S.phase === 'waiting'){
+    const elapsedMs = now - S.serviceStartMs;
+    ge('wAmt').textContent     = fmt(tot);
+    ge('wKm').textContent      = fmtKm(S.totalKm);
+    ge('wElapsed').textContent = fmtMs(elapsedMs);
+    ge('wWS').textContent      = fmtMs(wMs);
+    if(S.waitChargeStarted){
+      ge('wWT').textContent = fmtMs(wMs);
+      ge('wWC').textContent = fmt(wC);
+    }
+  } else if(S.phase === 'running'){
+    ge('rAmt').textContent  = fmt(tot);
+    ge('rKm').textContent   = fmtKm(S.totalKm);
+    ge('rWait').textContent = fmtMs(wMs);
+    ge('bdKm').textContent  = fmt(kC);
+    ge('bdEsp').textContent = fmt(wC);
+    ge('bdTot').textContent = fmt(tot);
+    // Indicador de parada automática
+    if(S.autoStopStart != null){
+      const stopSec       = (now - S.autoStopStart) / 1000;
+      const chargedMs     = S.autoStopChargeStarted && S.autoStopChargeStart
+                            ? (now - S.autoStopChargeStart) : 0;
+      ge('rPT').textContent = fmtSec(stopSec);
+      ge('rPC').textContent = fmt((chargedMs / 3600000) * S.waitRate);
+      // Activar indicador visual en cuanto empieza la parada (no solo tras el grace)
+      if(stopSec > 5) ge('pInd').classList.add('on');
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────
+// RECEIPT
+// ─────────────────────────────────────────────────
+function openReceipt(){
+  const kC  = S.totalKm * S.kmRate;
+  const wC  = (S.accWaitMs/3600000) * S.waitRate;
+  const iva = S.finalRounded - S.finalRounded/1.10;
+  const tn  = S.tariff==='nocturna'?'Tarifa 2 · Nocturna/Festiva':'Tarifa 1 · Diurna/Laborable';
+  const dur = S.endTime&&S.startTime ? fmtMs(S.endTime-S.startTime) : '—';
+  const MINIMO    = S.tariff==='nocturna' ? 7.00 : 6.00;
+  const minApplied= (S.bandera+kC) < MINIMO;
+  const bultosC   = (S.bultos||0)*0.50;
+  const suplC     = S.suplImporte||0;
+
+  ge('rNum').textContent  = `Recibo nº ${S.receiptIdStr}`;
+  ge('rDate').textContent = fmtDT(S.endTime);
+  ge('rTar').textContent  = tn;
+  ge('rSt').textContent   = fmtT(S.startTime);
+  ge('rEn').textContent   = fmtT(S.endTime);
+  ge('rDur').textContent  = dur;
+  ge('rOri').textContent  = S.addrOrigin||'—';
+  ge('rDst').textContent  = S.addrDest||'—';
+  ge('rBan').textContent  = fmt(S.bandera);
+  ge('rKL').textContent   = fmtKm(S.totalKm);
+  ge('rKC').textContent   = fmt(kC);
+
+  // Mínimo
+  if(minApplied){ ge('rMinRow').style.display=''; ge('rMin').textContent=`Mín. ${fmt(MINIMO)}`; }
+  else ge('rMinRow').style.display='none';
+
+  ge('rWL').textContent   = fmtMs(S.accWaitMs);
+  ge('rWC').textContent   = fmt(wC);
+
+  // Bultos
+  if(bultosC>0){ ge('rBulRow').style.display=''; ge('rBulN').textContent=S.bultos; ge('rBulC').textContent=fmt(bultosC); }
+  else ge('rBulRow').style.display='none';
+
+  // Suplemento libre
+  if(suplC>0){ ge('rSuplRow').style.display=''; ge('rSuplLbl2').textContent=S.suplDesc||'Suplemento'; ge('rSuplC2').textContent=fmt(suplC); }
+  else ge('rSuplRow').style.display='none';
+
+  ge('rSub').textContent  = fmt(S.finalRaw);
+  ge('rTot').textContent  = `${S.finalRounded},00 €`;
+  ge('rIva').textContent  = fmt(iva);
+
+  if(navigator.share) ge('btnNativeShare').style.display='';
+  ge('rcptOverlay').classList.remove('hide');
+  ge('qrcode').innerHTML = makeQRSVG(buildQRText(), 140);
+}
+function closeReceipt(){ge('rcptOverlay').classList.add('hide');}
+
+function makeQRSVG(text, px){
+  try{
+    if(!window.qrcodegen) throw new Error('qrcodegen not loaded');
+    const QRC  = window.qrcodegen;
+    const segs = QRC.QrSegment.makeSegments(text);
+    const qr   = QRC.QrCode.encodeSegments(segs, QRC.QrCode.Ecc.MEDIUM);
+    return qrToSVG(qr, px);
+  }catch(e){
+    return '<span style="font-size:10px;color:#999;display:block;text-align:center;padding-top:50px">Activa conexión<br>para ver el QR</span>';
+  }
+}
+
+function qrToSVG(qr, px){
+  const n = qr.size, cs = Math.floor(px/(n+8)), mg = Math.floor((px-cs*n)/2);
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" width="${px}" height="${px}"><rect width="${px}" height="${px}" fill="#fff"/>`;
+  for(let y=0;y<n;y++) for(let x=0;x<n;x++)
+    if(qr.getModule(x,y)) s+=`<rect x="${mg+x*cs}" y="${mg+y*cs}" width="${cs}" height="${cs}" fill="#111"/>`;
+  return s+'</svg>';
+}
+
+// Intentar cargar qrcodegen al inicio (en background)
+(function(){ const s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/qrcodegen@1.8.0/qrcodegen.js'; document.head.appendChild(s); })();
+
+function buildQRText(){
+  const kC  = S.totalKm * S.kmRate;
+  const wC  = (S.accWaitMs / 3600000) * S.waitRate;
+  const dur = S.endTime && S.startTime ? fmtMs(S.endTime - S.startTime) : '—';
+  const tn  = S.tariff==='nocturna' ? 'Tarifa 2 - Nocturna/Festiva' : 'Tarifa 1 - Diurna/Laborable';
+  const ori = S.addrOrigin !== '—' ? `Origen: ${S.addrOrigin}\n` : '';
+  const dst = S.addrDest   !== '—' ? `Destino: ${S.addrDest}\n`  : '';
+  return `TAXI ARANDA DE DUERO - Lic. 12
+RAQUEL BRAVO GONZALEZ - DNI: 45.421.517-J
+Tlf: 686677107
+Recibo: ${S.receiptIdStr}
+Fecha: ${fmtDT(S.endTime)}
+${tn}
+Inicio: ${fmtT(S.startTime)} - Fin: ${fmtT(S.endTime)} (${dur})
+${ori}${dst}Bandera: ${fmt(S.bandera)}
+Trayecto ${fmtKm(S.totalKm)} km: ${fmt(kC)}
+Espera ${fmtMs(S.accWaitMs)}: ${fmt(wC)}
+TOTAL: ${S.finalRounded},00 EUR (IVA 10% incl.)`;
+}
+
+function buildPDF(){
+  const {jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:[80,240]});
+  const W=80,p=4;
+  const kC        = S.totalKm * S.kmRate;
+  const wC        = (S.accWaitMs/3600000) * S.waitRate;
+  const MINIMO    = S.tariff==='nocturna' ? 7.00 : 6.00;
+  const minApplied= (S.bandera+kC) < MINIMO;
+  const tripCost  = minApplied ? MINIMO : S.bandera+kC;
+  const bultosC   = (S.bultos||0)*0.50;
+  const suplC     = S.suplImporte||0;
+  const iva       = S.finalRounded - S.finalRounded/1.10;
+  const tn        = S.tariff==='nocturna'?'T2 · Noc./Festiva':'T1 · Diurna/Lab.';
+  const dur       = S.endTime&&S.startTime ? fmtMs(S.endTime-S.startTime) : '—';
+
+  // Header
+  doc.setFillColor(245,197,24);doc.rect(0,0,W,22,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(22);doc.setTextColor(0,0,0);
+  doc.text('TAXI',W/2,13,{align:'center'});
+  doc.setFontSize(7);doc.setFont('helvetica','normal');
+  doc.text('ARANDA DE DUERO · BURGOS',W/2,19,{align:'center'});
+
+  let y=27;
+  doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(8.5);
+  doc.text('RAQUEL BRAVO GONZÁLEZ',W/2,y,{align:'center'});y+=4.5;
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(80,80,80);
+  doc.text('DNI: 45.421.517-J',W/2,y,{align:'center'});y+=3.6;
+  doc.text('Licencia Nº 12 · Aranda de Duero (Burgos)',W/2,y,{align:'center'});y+=3.6;
+  doc.text('Tlf: 686 677 107  ·  arandataxi12@gmail.com',W/2,y,{align:'center'});y+=5;
+
+  doc.setDrawColor(200,200,200);doc.setLineDash([1.2,1]);
+  doc.line(p,y,W-p,y);y+=4;
+  doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(40,40,40);
+  doc.text(`Recibo nº ${S.receiptIdStr}`,p,y);
+  doc.text(fmtDT(S.endTime),W-p,y,{align:'right'});y+=5;
+  doc.line(p,y,W-p,y);y+=4;
+
+  // Trip info
+  doc.setFont('helvetica','normal');doc.setFontSize(6.5);doc.setTextColor(70,70,70);
+  [[' Tarifa:',tn],['  Inicio:',fmtT(S.startTime)],['     Fin:',fmtT(S.endTime)],['Duración:',dur]].forEach(([l,v])=>{
+    doc.text(l,p,y);doc.text(v,W-p,y,{align:'right'});y+=4;
+  });
+  doc.setFontSize(6);doc.setTextColor(100,100,100);
+  if(S.addrOrigin&&S.addrOrigin!=='—'){doc.text('Origen: '+S.addrOrigin.substring(0,45),p,y);y+=3.5;}
+  if(S.addrDest&&S.addrDest!=='—'){doc.text('Destino: '+S.addrDest.substring(0,45),p,y);y+=3.5;}
+  y+=1;doc.setLineDash([1.2,1]);doc.line(p,y,W-p,y);y+=4;
+
+  // Charges
+  doc.setFontSize(7);doc.setTextColor(40,40,40);
+  doc.text('Bajada de bandera:',p,y);doc.text(fmt(S.bandera),W-p,y,{align:'right'});y+=4.5;
+  doc.text(`Trayecto (${fmtKm(S.totalKm)} km):`,p,y);doc.text(fmt(kC),W-p,y,{align:'right'});y+=4.5;
+  if(minApplied){
+    doc.setTextColor(200,100,0);
+    doc.text('Mínimo aplicado:',p,y);doc.text(fmt(MINIMO),W-p,y,{align:'right'});y+=4.5;
+    doc.setTextColor(40,40,40);
+  }
+  doc.text(`Espera/Disp. (${fmtMs(S.accWaitMs)}):`,p,y);doc.text(fmt(wC),W-p,y,{align:'right'});y+=4.5;
+  if(bultosC>0){doc.text(`Bultos (${S.bultos} ud.):`,p,y);doc.text(fmt(bultosC),W-p,y,{align:'right'});y+=4.5;}
+  if(suplC>0){doc.text(`${S.suplDesc||'Suplemento'}:`,p,y);doc.text(fmt(suplC),W-p,y,{align:'right'});y+=4.5;}
+
+  y+=1;doc.line(p,y,W-p,y);y+=3;
+  doc.setFontSize(6.5);doc.setTextColor(100,100,100);
+  doc.text('Subtotal:',p,y);doc.text(fmt(S.finalRaw),W-p,y,{align:'right'});y+=5;
+
+  doc.setFillColor(20,20,30);doc.roundedRect(p,y-2,W-2*p,11,2,2,'F');
+  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(11.5);
+  doc.text('TOTAL:',p+3,y+6);
+  doc.text(`${S.finalRounded},00 €`,W-p-2,y+6,{align:'right'});y+=15;
+
+  doc.setFont('helvetica','normal');doc.setFontSize(5.8);doc.setTextColor(130,130,130);
+  doc.text(`IVA 10% incluido: ${fmt(iva)}`,W/2,y,{align:'center'});y+=5;
+
+  doc.setLineDash([1.2,1]);doc.setDrawColor(200,200,200);doc.line(p,y,W-p,y);y+=5;
+
+  const qrCanvas=ge('qrcode').querySelector('canvas');
+  if(qrCanvas){doc.addImage(qrCanvas.toDataURL('image/png'),'PNG',(W-28)/2,y,28,28);y+=30;}
+  doc.setFontSize(6);doc.setTextColor(160,160,160);
+  doc.text('Escanea el QR para ver este recibo',W/2,y,{align:'center'});y+=4;
+  doc.text('Gracias por viajar con Taxi Aranda · Lic. Nº 12',W/2,y,{align:'center'});
+  return doc;
+}
+
+async function downloadPDF(){
+  try{
+    const doc=buildPDF();
+    const blob=doc.output('blob');
+    const fn=`recibo_taxi_aranda_${S.receiptIdStr.replace(/\//g,'_')}.pdf`;
+    if(navigator.share&&navigator.canShare){
+      const file=new File([blob],fn,{type:'application/pdf'});
+      if(navigator.canShare({files:[file]})){
+        try{await navigator.share({files:[file],title:'Recibo Taxi Aranda'});return;}catch(e){}
+      }
+    }
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=fn;
+    document.body.appendChild(a);a.click();
+    setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(url);},1000);
+    toast('PDF descargado ✓');
+  }catch(e){toast('Error PDF: '+e.message);}
+}
+
+function buildRcptTxt(){
+  const kC        = S.totalKm * S.kmRate;
+  const wC        = (S.accWaitMs/3600000) * S.waitRate;
+  const MINIMO    = S.tariff==='nocturna' ? 7.00 : 6.00;
+  const minApplied= (S.bandera+kC) < MINIMO;
+  const bultosC   = (S.bultos||0)*0.50;
+  const suplC     = S.suplImporte||0;
+  const dur       = S.endTime&&S.startTime ? fmtMs(S.endTime-S.startTime) : '—';
+  const sep       = '─'.repeat(33);
+  let txt = `TAXI ARANDA DE DUERO\nRAQUEL BRAVO GONZÁLEZ\nDNI: 45.421.517-J\nLicencia Nº 12 · Aranda de Duero (Burgos)\nTlf: 686 677 107 | arandataxi12@gmail.com\n${sep}\nRecibo nº ${S.receiptIdStr}\nFecha: ${fmtDT(S.endTime)}\n${sep}\nTarifa: ${S.tariff==='nocturna'?'T2·Nocturna/Festiva':'T1·Diurna/Laborable'}\nInicio: ${fmtT(S.startTime)}   Fin: ${fmtT(S.endTime)}\nDuración: ${dur}\nOrigen:  ${S.addrOrigin||'—'}\nDestino: ${S.addrDest||'—'}\n${sep}\nBajada de bandera: ${fmt(S.bandera)}\nTrayecto (${fmtKm(S.totalKm)} km): ${fmt(kC)}`;
+  if(minApplied) txt += `\nMínimo aplicado: ${fmt(MINIMO)}`;
+  txt += `\nEspera/Disp. (${fmtMs(S.accWaitMs)}): ${fmt(wC)}`;
+  if(bultosC>0) txt += `\nBultos (${S.bultos} ud.): ${fmt(bultosC)}`;
+  if(suplC>0)   txt += `\n${S.suplDesc||'Suplemento'}: ${fmt(suplC)}`;
+  txt += `\n${sep}\nSubtotal: ${fmt(S.finalRaw)}\nTOTAL: ${S.finalRounded},00 € (IVA 10% incluido)\n${sep}\nGracias por viajar con nosotros`;
+  return txt;
+}
+
+function shareWhatsApp(){window.open('https://wa.me/?text='+encodeURIComponent(buildRcptTxt()),'_blank');}
+function shareMail(){window.location.href=`mailto:?subject=${encodeURIComponent('Recibo Taxi Aranda Nº '+S.receiptIdStr)}&body=${encodeURIComponent(buildRcptTxt())}`;}
+async function nativeShare(){
+  try{
+    const doc=buildPDF();const blob=doc.output('blob');
+    const fn=`recibo_taxi_aranda_${S.receiptIdStr.replace(/\//g,'_')}.pdf`;
+    await navigator.share({title:`Recibo Taxi Aranda Nº ${S.receiptIdStr}`,text:buildRcptTxt(),files:[new File([blob],fn,{type:'application/pdf'})]});
+  }catch(e){if(e.name!=='AbortError')toast('Error: '+e.message);}
+}
+
+// ─────────────────────────────────────────────────
+// DAILY RECEIPT COUNTER (localStorage)
+// ─────────────────────────────────────────────────
+function getCounter(dk){try{return JSON.parse(localStorage.getItem('taxi_rcpt')||'{}')[dk]||0;}catch{return 0;}}
+function incrCounter(dk){
+  try{const d=JSON.parse(localStorage.getItem('taxi_rcpt')||'{}');d[dk]=(d[dk]||0)+1;localStorage.setItem('taxi_rcpt',JSON.stringify(d));return d[dk];}
+  catch{return 1;}
+}
+
+// ─────────────────────────────────────────────────
+// RECEIPT HISTORY (localStorage)
+// ─────────────────────────────────────────────────
+function saveReceiptToHistory(r){
+  try{
+    const list = JSON.parse(localStorage.getItem('taxi_hist')||'[]');
+    // Evitar duplicados por id
+    const idx = list.findIndex(x=>x.id===r.id);
+    if(idx>=0) list[idx]=r; else list.unshift(r);
+    // Mantener máximo 200 recibos
+    if(list.length>1500) list.splice(1500);
+    localStorage.setItem('taxi_hist', JSON.stringify(list));
+  }catch(e){}
+}
+
+function loadHistory(){
+  try{ return JSON.parse(localStorage.getItem('taxi_hist')||'[]'); }
+  catch{ return []; }
+}
+
+function openHistory(){
+  // Preseleccionar mes actual
+  const now = new Date();
+  ge('histMonth').value = `${now.getFullYear()}-${pad2(now.getMonth()+1)}`;
+  renderHistory();
+  ge('histOverlay').classList.remove('hide');
+}
+
+function renderHistory(){
+  const filter = ge('histMonth').value; // "YYYY-MM" o vacío
+  const list   = loadHistory();
+  const el     = ge('histList');
+  el.innerHTML = '';
+
+  const filtered = filter
+    ? list.filter(r => r.endTime && r.endTime.startsWith(filter))
+    : list;
+
+  if(!filtered.length){
+    el.innerHTML = '<div class="hist-empty">No hay recibos para este período</div>';
+    return;
+  }
+
+  // Agrupar por día
+  const byDay = {};
+  filtered.forEach(r => {
+    const day = r.endTime ? r.endTime.slice(0,10) : 'sin-fecha';
+    if(!byDay[day]) byDay[day] = [];
+    byDay[day].push(r);
+  });
+
+  Object.keys(byDay).sort((a,b)=>b.localeCompare(a)).forEach(day => {
+    // Cabecera de día
+    const dayDate  = new Date(day+'T12:00:00');
+    const dayLbl   = isNaN(dayDate) ? day : dayDate.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+    const dayTotal = byDay[day].reduce((s,r)=>s+(r.finalRounded||0), 0);
+    const dayKm    = byDay[day].reduce((s,r)=>s+(r.totalKm||0), 0);
+    const dayN     = byDay[day].length;
+
+    const hdr = document.createElement('div');
+    hdr.className = 'hist-day-hdr';
+    hdr.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:baseline">
+        <span style="text-transform:capitalize">${dayLbl}</span>
+        <span style="color:var(--yellow);font-size:15px;font-family:'Bebas Neue',sans-serif">${dayTotal} €</span>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:3px;font-size:10px;color:var(--text3);font-weight:400;letter-spacing:.5px;text-transform:none">
+        <span>${dayN} servicio${dayN!==1?'s':''}</span>
+        <span>·</span>
+        <span>${fmtKm(dayKm)} km totales</span>
+      </div>
+    `;
+    el.appendChild(hdr);
+
+    byDay[day].forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'hist-card';
+      const en  = r.endTime ? new Date(r.endTime) : null;
+      const st  = r.startTime ? new Date(r.startTime) : null;
+      const dur = st&&en ? fmtMs(en-st) : '—';
+      const kC  = (r.totalKm||0)*(r.kmRate||0);
+      const wC  = ((r.accWaitMs||0)/3600000)*(r.waitRate||0);
+      const tn  = r.tariff==='nocturna'?'T2':'T1';
+      const ori = r.addrOrigin&&r.addrOrigin!=='—'?r.addrOrigin:'';
+      const dst = r.addrDest&&r.addrDest!=='—'?r.addrDest:'';
+      card.innerHTML = `
+        <div class="hist-card-top">
+          <div>
+            <div class="hist-card-id">Nº ${r.id}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px">${en?fmtT(en):'—'}</div>
+          </div>
+          <div class="hist-card-total">${r.finalRounded||0} €</div>
+        </div>
+        <div class="hist-card-row">
+          <span>🛣️ ${fmtKm(r.totalKm||0)} km</span>
+          <span>⏳ ${fmtMs(r.accWaitMs||0)}</span>
+          <span>⏱️ ${dur}</span>
+          <span style="color:var(--text3)">${tn}</span>
+        </div>
+        ${ori||dst?`<div class="hist-card-addr">${ori}${ori&&dst?' → ':''}${dst}</div>`:''}
+      `;
+      card.onclick = () => openReceiptFromHistory(r);
+      el.appendChild(card);
+    });
+  });
+}
+
+function closeHistory(){
+  ge('histOverlay').classList.add('hide');
+}
+
+function openReceiptFromHistory(r){
+  const saved = Object.assign({}, S);
+  S.receiptIdStr = r.id;
+  S.tariff       = r.tariff       || 'diurna';
+  S.startTime    = r.startTime    ? new Date(r.startTime) : null;
+  S.endTime      = r.endTime      ? new Date(r.endTime)   : null;
+  S.bandera      = r.bandera      || 0;
+  S.totalKm      = r.totalKm      || 0;
+  S.kmRate       = r.kmRate       || 0;
+  S.accWaitMs    = r.accWaitMs    || 0;
+  S.waitRate     = r.waitRate     || 0;
+  S.bultos       = r.bultos       || 0;
+  S.suplDesc     = r.suplDesc     || '';
+  S.suplImporte  = r.suplImporte  || 0;
+  S.finalRaw     = r.finalRaw     || 0;
+  S.finalRounded = r.finalRounded || 0;
+  S.addrOrigin   = r.addrOrigin   || '—';
+  S.addrDest     = r.addrDest     || '—';
+  closeHistory();
+  openReceipt();
+  // Restaurar estado real DESPUÉS del requestAnimationFrame del QR
+  setTimeout(() => Object.assign(S, saved), 300);
+}
+
+// ─────────────────────────────────────────────────
+// HELPERS
+// ─────────────────────────────────────────────────
+function showSt(id){['stIdle','stWait','stRun','stFin'].forEach(s=>ge(s).style.display=s===id?'':'none');}
+function fmt(v){return Math.max(0,v).toFixed(2).replace('.',',')+' €';}
+function fmtKm(v){return Math.max(0,v).toFixed(3).replace('.',',');}
+function pad2(n){return String(n).padStart(2,'0');}
+function fmtSec(s){const t=Math.max(0,Math.round(s));return`${Math.floor(t/60)}:${pad2(t%60)}`;}
+function fmtMs(ms){return fmtSec(Math.max(0,ms)/1000);}
+function isoDate(d){return`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;}
+function fmtT(d){return d?d.toLocaleTimeString('es-ES'):'—';}
+function fmtDT(d){return d?d.toLocaleDateString('es-ES')+' '+fmtT(d):'—';}
+function clearTmr(t){if(t)clearTimeout(t);}
+function ge(id){return document.getElementById(id);}
+let toastTmr;
+function toast(msg){const t=ge('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastTmr);toastTmr=setTimeout(()=>t.classList.remove('on'),2800);}
+
+// ─────────────────────────────────────────────────
+// SERVICE WORKER REGISTRATION
+// ─────────────────────────────────────────────────
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        // Keepalive ping cada 25s para mantener GPS en background
+        setInterval(() => {
+          if(reg.active) reg.active.postMessage('keepAlive');
+        }, 25000);
+      })
+      .catch(err => console.warn('SW no registrado:', err));
+  });
+}
+
+showSt('stIdle');
+initGPS();
+</script>
+
+</body>
+</html>
